@@ -1,0 +1,4 @@
+---
+# Service Variables
+service_port_webmin: 10000
+

@@ -1,0 +1,41 @@
+---
+  - name: add repository (webmin)
+    template: src=webminrepo.php.j2 dest=/etc/yum.repos.d/webmin.repo
+
+  - name: install webmin and dependencies
+    yum: name={{ item }} state=present
+    with_items:
+     - webmin
+     - perl-Net-SSLeay
+
+  - name: configuration changes to webmin (webmin.acl)
+    template: src=webmin.acl.php.j2 dest=/etc/webmin/webmin.acl backup=yes
+ #   notify:
+ #     - restart webmin
+
+  - name: configuration changes to webmin (miniserv.users)
+    template: src=miniserv.users.php.j2 dest=/etc/webmin/miniserv.users backup=yes
+ #   notify:
+ #     - restart webmin
+ 
+  - name: stop webmin service
+    command: service webmin stop 
+
+  - name: start webmin service
+    command: service webmin start
+
+  - name: insert iptables rule
+    lineinfile: dest=/etc/sysconfig/iptables state=present regexp="{{ service_port_webmin }}"
+                insertafter="^:OUTPUT " line="-A INPUT -p tcp  --dport {{ service_port_webmin }} -j  ACCEPT"
+    notify: restart iptables
+    when: ansible_distribution == 'CentOS' and ansible_distribution_version|version_compare(7, '<') or ansible_distribution == 'Red Hat Enterprise Linux' and ansible_distribution_version|version_compare(7, '<')
+
+  - name: insert firewalld rule
+    firewalld: 
+      permanent: yes
+      immediate: yes
+      state: enabled
+      port: "{{ service_port_webmin }}/tcp" 
+      zone: public
+    when: ansible_distribution == 'CentOS' and ansible_distribution_version|version_compare(7, '>=') or ansible_distribution == 'Red Hat Enterprise Linux' and ansible_distribution_version|version_compare(7, '>=')
+

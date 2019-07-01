@@ -1,0 +1,4 @@
+---
+- hosts: all
+  roles: 
+    - {role: webmin-install, tags: install-webmin}
